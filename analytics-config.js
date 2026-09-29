@@ -1,0 +1,1 @@
+window.PROOF_ANALYTICS={"host":"https://us.i.posthog.com","token":"phc_tncUSpDV7vbaE6AJSobfnsLGxGh9iqe4YCQXK8DsnsJ3","project_id":"629230"};

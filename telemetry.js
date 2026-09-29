@@ -1,0 +1,12 @@
+import {BUILD} from './engine.js';
+export class Telemetry{
+ constructor(qa=false){this.qa=qa;this.session=crypto.randomUUID();this.run=crypto.randomUUID();this.rows=[];this.pending=[];this.seq=0;this.start=performance.now();this.actions=0;this.runStart=this.start;this.extended=false;this.payoff=false;this.acked=0;this.status='waiting';this.event('session_start');}
+ event(event,props={}){const id=crypto.randomUUID();const row={event:'mission002_'+event,uuid:id,distinct_id:this.session,timestamp:new Date().toISOString(),properties:{event_id:id,mission:'MISSION002',build:BUILD,session_id:this.session,run_id:this.run,qa:this.qa,sequence:++this.seq,elapsed_ms:Math.round(performance.now()-this.start),run_elapsed_ms:Math.round(performance.now()-this.runStart),$process_person_profile:false,$geoip_disable:true,$ip:null,...props}};this.rows.push(row);this.pending.push(row);this.onchange?.();return row;}
+ action(kind){if(!this.extended&&performance.now()-this.start>=60000){this.extended=true;this.event('session_extended',{basis:'meaningful_action_after_60_seconds'});}this.actions++;this.event('meaningful_action',{action_index:this.actions,kind});}
+ newRun(){this.run=crypto.randomUUID();this.runStart=performance.now();this.actions=0;this.payoff=false;this.event('voluntary_replay');}
+ async flush(){if(this.busy||!this.pending.length)return;const c=window.PROOF_ANALYTICS;if(!c?.token||!c?.host){this.status='not_configured';this.onchange?.();return;}this.busy=true;try{while(this.pending.length){const batch=this.pending.slice(0,20);const res=await fetch(c.host+'/batch/',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({api_key:c.token,batch}),keepalive:true,signal:AbortSignal.timeout(8000)});if(!res.ok)throw Error('http_'+res.status);const ack=await res.json();if(ack!==1&&ack!=='1'&&ack?.status!==1&&ack?.status!=='1'&&String(ack?.status).toLowerCase()!=='ok')throw Error('unconfirmed_ack');this.pending.splice(0,batch.length);this.acked+=batch.length;}this.status='ingestion_acknowledged';this.lastError=null;}catch(e){this.status='retry_pending';this.lastError=e.name+': '+e.message;}finally{this.busy=false;this.onchange?.();}}
+ leaving(){this.event('page_hidden',{quit_before_payoff:!this.payoff,actions:this.actions});const c=window.PROOF_ANALYTICS;if(c?.token&&this.pending.length)navigator.sendBeacon(c.host+'/batch/',new Blob([JSON.stringify({api_key:c.token,batch:this.pending.slice(0,20)})],{type:'text/plain'}));}
+}
+
+
+
