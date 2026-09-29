@@ -1,4 +1,4 @@
-export const BUILD='m002-harvest-0.1.0';
+export const BUILD='m002-harvest-0.1.1';
 export const SIZE=6;
 export const CROPS=['wheat','carrot','flower'];
 export const GOALS=[6,6,6];
@@ -33,3 +33,4 @@ export function useTool(g,k,target){if(g.ended||g.tools[k]!==1)return{ok:false,r
 export function hasMove(g){return g.hand.some(p=>p&&g.board.some((_,i)=>canPlace(g,p,i%6,Math.floor(i/6))));}
 export function canAct(g){return hasMove(g)||(g.tools[0]&&g.hand.some(p=>p&&p.cells.length>1)&&g.board.some(c=>!c))||((g.tools[1]||g.tools[2])&&g.board.some(Boolean));}
 export function snapshot(g){return{version:1,repaired:[...g.repaired],season:g.season+1};}
+
