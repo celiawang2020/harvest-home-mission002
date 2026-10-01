@@ -1,0 +1,22 @@
+export async function loadArt(){const load=src=>new Promise((resolve,reject)=>{let im=new Image(),timer=setTimeout(()=>reject(Error('素材加载超时：'+src)),12000);im.onload=()=>{clearTimeout(timer);resolve(im)};im.onerror=()=>{clearTimeout(timer);reject(Error('素材加载失败：'+src))};im.src=src});const [atlas,arena]=await Promise.all([load('assets/atlas.png'),load('assets/arena.png')]);return{atlas,arena}}
+export function paint(ctx,s,art,target){const c=ctx;c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,390,760);c.fillStyle='#20383d';c.fillRect(0,0,390,760);if(!art)return;c.drawImage(art.arena,0,0,390,760);c.fillStyle='#10252d44';c.fillRect(16,106,358,601);
+ const regions=[[51,37,316,334],[475,34,303,341],[863,43,362,340],[50,465,347,293],[447,487,365,263],[851,430,378,366],[26,923,399,223],[478,808,326,387],[868,833,365,338]];
+ const sprite=(id,x,y,w,h=w,a=0,alpha=1)=>{c.save();c.translate(x,y);c.rotate(a);c.globalAlpha=alpha;c.drawImage(art.atlas,...regions[id],-w/2,-h/2,w,h);c.restore()};
+ const txt=(str,x,y,size=13,color='#fff0c9')=>{c.fillStyle=color;c.font=`700 ${size}px system-ui`;c.textAlign='center';c.fillText(str,x,y)};
+ c.fillStyle='#132930ed';c.fillRect(0,65,390,35);txt('♥'.repeat(s.p.hp)+'♡'.repeat(3-s.p.hp),50,88,20,'#ffc28b');txt(s.exit?'出口已亮 · 向上撤离':`击破 ${Math.min(4,s.kills)}/4 · 充能 ${Math.max(0,Math.ceil(52-s.t))}s`,244,87,13,'#a9e4d7');
+ c.save();c.globalAlpha=s.exit?1:.35;sprite(8,195,132,61);c.restore();if(s.exit){c.strokeStyle='#78fff0';c.lineWidth=3;c.beginPath();c.arc(195,133,43+Math.sin(s.t*5)*3,0,Math.PI*2);c.stroke();txt('撤离',195,185,16,'#a3fff0')}
+ for(const r of s.walls){sprite(6,r.x+r.w/2,r.y+r.h/2,r.w+8,42)}
+ for(const v of s.covers){if(v.alive){if(v.flash>0){c.strokeStyle='#d9ffff';c.lineWidth=5;c.beginPath();c.arc(v.x,v.y,36,0,Math.PI*2);c.stroke();txt('挡弹',v.x,v.y-40,14,'#e1ffff')}sprite(5,v.x,v.y,65);sprite(v.id==='left'?3:4,v.x,v.y,58);c.strokeStyle='#ffcf72';c.lineWidth=1.5;c.setLineDash([5,5]);c.beginPath();c.arc(v.x,v.y,42+Math.sin(s.t*4)*3,0,Math.PI*2);c.stroke();c.setLineDash([]);txt(v.id==='left'?'靠近 · 夺取散射':'靠近 · 夺取电炮',v.x,v.y+53,12,'#ffe0a0')}else{c.strokeStyle='#aa875b';c.setLineDash([3,5]);c.strokeRect(v.x-22,v.y-22,44,44);c.setLineDash([])}}
+ for(const e of s.enemies){if(e.entry>0){c.strokeStyle='#ffbd78';c.lineWidth=2;c.strokeRect(e.x-26,e.y-29,52,58);txt('来袭',e.x,e.y+39,11,'#ffcf96')}if(e.lock){c.strokeStyle='#ff745b99';c.lineWidth=1.5;c.setLineDash([5,7]);c.beginPath();c.moveTo(e.x,e.y);c.lineTo(e.lock.x,e.lock.y);c.stroke();c.setLineDash([]);c.strokeStyle='#ffa891';c.beginPath();c.arc(e.lock.x,e.lock.y,22,0,Math.PI*2);c.stroke()}sprite(e.heavy?2:1,e.x,e.y,e.heavy?63:49,e.heavy?63:53,e.a,e.entry>0?.45:1);if(e.hit){c.fillStyle='#ffebbc66';c.beginPath();c.arc(e.x,e.y,e.r+6,0,Math.PI*2);c.fill()}}
+ for(const b of s.shots){c.strokeStyle=b.enemy?'#ff684e':b.kind==='right'?'#74fff0':'#ffd383';c.lineWidth=b.enemy?b.r*1.6:b.kind==='right'?5:3;c.lineCap='round';c.shadowColor=c.strokeStyle;c.shadowBlur=6;c.beginPath();c.moveTo(b.x,b.y);c.lineTo(b.x-b.vx*.024,b.y-b.vy*.024);c.stroke();c.shadowBlur=0}
+ const p=s.p,bob=target?Math.sin(s.t*30)*1.4:Math.sin(s.t*3)*.5;c.save();c.translate(p.x,p.y+bob);c.rotate(p.a);if(p.inv>0)c.globalAlpha=.65+Math.sin(s.t*35)*.3;c.fillStyle='#04151866';c.beginPath();c.ellipse(0,8,23+(p.left?10:0)+(p.right?10:0),24,0,0,Math.PI*2);c.fill();if(p.bump>0){c.strokeStyle='#ffe8ac';c.lineWidth=3;c.strokeRect(p.left?-41:-19,-23,38+(p.left?22:0)+(p.right?22:0),46)}sprite(0,0,0,50,58);if(p.left)sprite(3,-26+(p.leftCD>.39?3:0),0,42,42,0);if(p.right)sprite(4,26-(p.rightCD>.96?3:0),0,42,42,0);c.restore();
+ if(target){c.strokeStyle='#caffeb55';c.lineWidth=1;c.beginPath();c.arc(target.x,target.y,12,0,Math.PI*2);c.stroke()}
+ for(const f of s.fx){c.save();c.globalAlpha=f.life/f.max;c.translate(f.x,f.y);c.rotate(f.i+s.t*7);c.fillStyle=f.kind==='damage'?'#ff7955':f.kind==='capture'?'#75ffe6':f.kind==='cover'?'#bbc1b0':'#ffc579';c.fillRect(-2,-2,f.kind==='destroy'?6:4,4);c.restore()}
+ if(p.inv>1.45){c.strokeStyle='#ff5d4566';c.lineWidth=12;c.strokeRect(6,104,378,606)}
+ const recent=s.events.findLast(e=>e.type==='capture'&&s.t-e.t<3.2);let hint=recent?(recent.side==='left'?'散射已上车！左侧开火 · 掩体已拆除':'电炮已上车！右侧贯穿 · 车身更宽'):s.t<9?'拖动车辆 → 靠近琥珀色侧炮':s.t<18?'左侧散射击退 · 右侧电炮贯穿':s.t<34?'第二门炮，还是保留掩体？':s.exit?'出口已打开 · 冲向上方灯台':'重车入场 · 躲开红色瞄准线';c.fillStyle='#142a30ee';c.fillRect(0,716,390,44);txt(hint,195,742,12,'#d0e6d9');
+}
+
+
+
+
+
